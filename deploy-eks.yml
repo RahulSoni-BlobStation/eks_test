@@ -1,0 +1,77 @@
+name: Deploy to EKS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: my-eks-cluster
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+    - name: Deploy to EKS
+      run: |
+        echo "Deploying to EKS cluster: ${{ env.EKS_CLUSTER_NAME }}"
+
+        # Apply namespace first
+        kubectl apply -f k8s/namespace.yaml
+
+        # Apply application manifests
+        kubectl apply -f k8s/nginx-deployment.yaml
+        kubectl apply -f k8s/alb-ingress.yaml
+
+        # Wait for deployment to be ready
+        kubectl rollout status deployment/nginx-deployment --timeout=300s
+
+        # Get service and ingress information
+        echo "Services:"
+        kubectl get svc
+        echo "Ingresses:"
+        kubectl get ingress
+
+        # Get ALB URL if available
+        echo "Waiting for ALB to be ready..."
+        sleep 60
+        ALB_URL=$(kubectl get ingress nginx-alb-ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "ALB not ready yet")
+        echo "Application URL: http://$ALB_URL"
+
+  test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate Kubernetes manifests
+      uses: azure/k8s-lint@v1
+      with:
+        manifests: |
+          k8s/namespace.yaml
+          k8s/nginx-deployment.yaml
+          k8s/alb-ingress.yaml
