@@ -1,0 +1,66 @@
+# k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-app-ingress
+  namespace: sample-app
+  labels:
+    app: backend-app
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '5'
+    alb.ingress.kubernetes.io/load-balancer-name: sample-app-alb
+    alb.ingress.kubernetes.io/tags: Environment=dev,Project=sample-app
+    # SSL Redirect (uncomment if you have SSL certificate)
+    # alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/cert-id
+spec:
+  rules:
+  - host: backend-app.example.com  # Change to your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-app-service
+            port:
+              number: 80
+  # Uncomment for HTTPS
+  # tls:
+  # - hosts:
+  #   - backend-app.example.com
+  #   secretName: backend-app-tls
+---
+# Alternative Ingress for testing without custom domain
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-app-ingress-test
+  namespace: sample-app
+  labels:
+    app: backend-app
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/load-balancer-name: sample-app-test-alb
+    alb.ingress.kubernetes.io/tags: Environment=dev,Project=sample-app
+spec:
+  rules:
+  - http:  # No host specified - will work with ALB DNS name
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-app-service
+            port:
+              number: 80
