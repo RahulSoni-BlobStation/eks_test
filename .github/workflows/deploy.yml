@@ -9,8 +9,8 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  EKS_CLUSTER_NAME: my-project-eks-cluster
-  ECR_REPOSITORY: my-project-backend-app
+  EKS_CLUSTER_NAME: prod-demo-cluster
+  ECR_REPOSITORY: demo
 
 permissions:
   id-token: write
