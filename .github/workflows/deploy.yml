@@ -36,9 +36,6 @@ jobs:
     - name: Setup Helm
       run: |
         curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-    - name: Install AWS Load Balancer Controller CRDs
-      run: |
-        kubectl apply -f https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.13.4/controller-crds.yaml
 
     - name: Deploy AWS Load Balancer controller
       run: |
