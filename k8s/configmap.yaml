@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-app-config
+  namespace: sample-app
+data:
+  app.properties: |
+    debug=false
+    database.url=jdbc:postgresql://localhost:5432/mydb
+    cache.ttl=3600
+  nginx.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        location / {
+            root /usr/share/nginx/html;
+            index index.html index.htm;
+        }
+        error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+            root /usr/share/nginx/html;
+        }
+    }
