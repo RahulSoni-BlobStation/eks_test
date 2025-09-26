@@ -45,10 +45,10 @@ spec:
             weight: 100
       containers:
       - args:
-        - --cluster-name=YOUR_CLUSTER_NAME
+        - --cluster-name=prod-demo-cluster
         - --ingress-class=alb
-        - --aws-vpc-id=YOUR_VPC_ID
-        - --aws-region=YOUR_AWS_REGION
+        - --aws-vpc-id=vpc-0e1afa28dd68cc0c4
+        - --aws-region=us-east-1
         image: public.ecr.aws/eks/aws-load-balancer-controller:v2.7.2
         livenessProbe:
           failureThreshold: 2
