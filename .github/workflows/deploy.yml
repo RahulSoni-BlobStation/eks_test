@@ -1,4 +1,4 @@
-name: Deploy nginx to EKS
+name: Deploy sample app to EKS
 
 on:
   push:
@@ -9,14 +9,14 @@ on:
 env:
   AWS_REGION: us-east-1
   EKS_CLUSTER_NAME: prod-demo-cluster
-  NAMESPACE: default
+  NAMESPACE: sample-app
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    name: Deploy nginx to EKS
+    name: Deploy sample app to EKS
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -32,50 +32,44 @@ jobs:
     - name: Update kube config
       run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
 
-    - name: Deploy nginx
+    - name: Setup Helm
       run: |
-        kubectl apply -f - <<EOF
-        apiVersion: apps/v1
-        kind: Deployment
-        metadata:
-          name: nginx-test
-          namespace: $NAMESPACE
-        spec:
-          replicas: 1
-          selector:
-            matchLabels:
-              app: nginx-test
-          template:
-            metadata:
-              labels:
-                app: nginx-test
-            spec:
-              containers:
-              - name: nginx
-                image: nginx:latest
-                ports:
-                - containerPort: 80
-        ---
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: nginx-test
-          namespace: $NAMESPACE
-        spec:
-          selector:
-            app: nginx-test
-          ports:
-            - protocol: TCP
-              port: 80
-              targetPort: 80
-          type: LoadBalancer
-        EOF
+        curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
-    - name: Wait for nginx rollout
+    - name: Deploy AWS Load Balancer controller
       run: |
-        kubectl rollout status deployment/nginx-test -n $NAMESPACE
+        kubectl apply -f k8s/aws-load-balancer-controller.yaml
 
-    - name: Get service info
+    - name: Deploy sample app manifests
       run: |
-        kubectl get svc nginx-test -n $NAMESPACE
-        kubectl get pods -n $NAMESPACE -l app=nginx-test
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/configmap.yaml
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+
+    - name: Deploy Ingress
+      run: |
+        kubectl apply -f k8s/ingress.yaml
+
+    - name: Deploy metrics-server
+      run: |
+        kubectl apply -f k8s/monitoring.yaml
+
+    - name: Install Prometheus/Grafana via Helm
+      run: |
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo add grafana https://grafana.github.io/helm-charts
+        helm repo update
+        # Optional: create monitoring namespace, but kube-system often used for metrics/grafana
+        # kubectl create namespace monitoring || true
+        helm install prometheus prometheus-community/prometheus --namespace kube-system
+        helm install grafana grafana/grafana --namespace kube-system --set adminPassword='admin'
+
+    - name: Wait for backend rollout
+      run: |
+        kubectl rollout status deployment/backend-app -n $NAMESPACE
+
+    - name: Get service and pod info
+      run: |
+        kubectl get svc -n $NAMESPACE
+        kubectl get pods -n $NAMESPACE
