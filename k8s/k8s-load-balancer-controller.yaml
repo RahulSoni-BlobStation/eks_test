@@ -9,7 +9,7 @@ metadata:
   name: aws-load-balancer-controller
   namespace: kube-system
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::879961718010:role/sample-app-aws-load-balancer-controller
+    eks.amazonaws.com/role-arn: arn:aws:iam::879961718010:role/aws-load-balancer-controller-role
 ---
 apiVersion: apps/v1
 kind: Deployment
