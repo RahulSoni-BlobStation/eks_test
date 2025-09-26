@@ -1,4 +1,4 @@
-#deploy on eks
+#deploy on ek
 name: Deploy sample app to EKS
 
 on:
